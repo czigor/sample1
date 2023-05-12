@@ -1,0 +1,143 @@
+<?php
+
+use Drupal\commerce_order\Entity\OrderItemInterface;
+
+define('PILISKOR_STORY_WHATS_THIS_PAGE', 2486);
+
+/**
+ * Implements hook_theme().
+ */
+function piliskor_story_theme() {
+  return [
+    'piliskor_story_annotated_text' => [
+      'render element' => 'elements',
+    ],
+    'piliskor_story_popup_line' => [
+      'render element' => 'elements',
+    ],
+  ];
+}
+
+/**
+ * Implements hook_preprocess_piliskor_story_popup_line().
+ */
+function piliskor_story_preprocess_piliskor_story_popup_line(&$variables) {
+  $elements = $variables['elements'];
+  $variables['run_url'] = '/run/' . $elements['#run_id'];
+  $entity_type_manager = \Drupal::entityTypeManager();
+  $user_storage = $entity_type_manager->getStorage('user');
+  $runner = $user_storage->load($elements['#uid']);
+  $variables['full_name'] = $runner->get('field_full_name')->value;
+  $variables['formatted_time'] = \Drupal::service('date.formatter')->format($elements['#time'], 'html_date');
+  if ($elements['#length'] < 1000) {
+    $variables['length'] = $elements['#length'] . ' m';
+  }
+  else {
+    $variables['length'] = $elements['#length']/1000 . ' km';
+  }
+}
+
+/**
+ * Implements hook_preprocess_piliskor_story_annotated_text().
+ */
+function piliskor_story_preprocess_piliskor_story_annotated_text(&$variables) {
+  $elements = $variables['elements'];
+  $variables['text'] = $elements['#text'];
+}
+
+/**
+ * Implements hook_preprocess_node().
+ */
+function piliskor_story_preprocess_node(&$variables) {
+  if ($variables['node']->bundle() === 'book') {
+    $variables['#attached']['library'][] = 'piliskor_story/story';
+    $variables['#attached']['library'][] = 'piliskor_story/story-css-' . $variables['node']->id();
+
+    $all_characters = \Drupal::service('piliskor_story.annotation_utility')->getBookTotalCharNumber($variables['node']);
+    $annotated_characters = \Drupal::service('piliskor_story.annotation_utility')->getBookAnnotatedCharNumber($variables['node']);
+
+    $variables['whats_this'] = \Drupal::entityTypeManager()->getStorage('node')->load(PILISKOR_STORY_WHATS_THIS_PAGE)->toLink(NULL, 'canonical', []);
+    if ($annotated_characters > 0) {
+      $variables['contributions'] = [
+        '#type' => 'checkbox',
+        '#title' => t('Show contributions'),
+      ];
+    }
+    if ($all_characters > 0) {
+      $variables['progress_bar'] = [
+        '#theme' => 'piliskor_base_progress_bar',
+        '#percent' => $annotated_characters / $all_characters * 100,
+        '#text' => t('@annotated/@total characters', ['@annotated' => $annotated_characters, '@total' => $all_characters]),
+      ];
+    }
+  }
+}
+
+/**
+ * Implements hook_library_info_build().
+ */
+function piliskor_story_library_info_build() {
+  $libraries = [];
+  $nids = \Drupal::entityTypeManager()->getStorage('node')
+    ->getQuery()
+    ->condition('type', 'book')
+    ->condition('status', 1)
+    ->accessCheck(FALSE)
+    ->execute();
+  foreach ($nids as $nid) {
+    $libraries['story-css-' . $nid] = [
+      'css' => [
+        'theme' => [
+          '/story-css/' . $nid => ['preprocess' => FALSE],
+        ],
+      ],
+    ];
+  }
+  return $libraries;
+}
+
+/**
+ * Cron callback to process runs.
+ */
+function piliskor_story_process_runs() {
+  $storage = \Drupal::entityTypeManager()->getStorage('commerce_order_item');
+  $run_ids = $storage->getQuery()
+    ->condition('type', 'run')
+    ->notExists('field_annotation_number')
+    ->condition('field_run_status', 'success')
+    ->sort('field_finish_time', 'ASC')
+    ->accessCheck(FALSE)
+    ->execute();
+  foreach ($run_ids as $run_id) {
+    $run = $storage->load($run_id);
+    \Drupal::service('piliskor_story.annotation_markup')->annotationMarkupForBook($run);
+  }
+}
+
+/**
+ * Removes all annotations from book nodes and the annotation numbers of all runs.
+ *
+ * To be used from drush:
+ * drush php-eval 'piliskor_story_reset_stories();'
+ *
+ */
+function piliskor_story_reset_stories() {
+  $node_storage = \Drupal::entityTypeManager()->getStorage('node');
+  $book_nids = $node_storage->getQuery()->condition('type', 'book')->accessCheck(FALSE)->execute();
+  $books = $node_storage->loadMultiple($book_nids);
+  foreach ($books as $book) {
+    $book->set('field_annotated_text', '');
+    $book->set('field_annotation_popup', '');
+    $book->set('field_fully_annotated', FALSE);
+    $book->set('field_uids_for_css', []);
+    $book->save();
+  }
+
+  $order_item_storage = \Drupal::entityTypeManager()->getStorage('commerce_order_item');
+  $run_ids = $order_item_storage->getQuery()->condition('type', 'run')->accessCheck(FALSE)->execute();
+  $runs = $order_item_storage->loadMultiple($run_ids);
+  foreach ($runs as $run) {
+    $run->set('field_annotation_number', '');
+    $run->save();
+  }
+}

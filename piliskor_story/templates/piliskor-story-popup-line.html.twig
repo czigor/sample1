@@ -1,0 +1,17 @@
+{#
+/**
+ * @file
+ * Default theme implementation to display a block.
+ *
+ * Available variables:
+ * - run_url: The url to the run.
+ * - full_name: The full name of the runner.
+ * - formatted_time: The formatted time.
+ * - length: The run length in meters.
+ *
+ * @see piliskor_story_preprocess_piliskor_story_popup_line()
+ *
+ * @ingroup themeable
+ */
+#}
+<a href ="{{ run_url }}" target="_blank" rel="noopener noreferrer">{{ full_name }} {{ formatted_time }}</a> {{ length }}

@@ -1,0 +1,10 @@
+piliskor_story.css:
+  path: '/story-css/{node}'
+  defaults:
+    _controller: '\Drupal\piliskor_story\Controller\StoryCss::view'
+  requirements:
+    _access: 'TRUE'
+  options:
+    parameters:
+      node:
+        type: entity:node

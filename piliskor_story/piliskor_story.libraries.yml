@@ -1,0 +1,8 @@
+story:
+  version: VERSION
+  js:
+    js/story.js: {}
+  dependencies:
+    - core/drupal
+    - core/jquery
+    - core/drupal.dialog

@@ -1,0 +1,4 @@
+type: module
+name: Piliskör Story
+description: Piliskör story features
+core_version_requirement: ^8.8 || ^9 || ^10

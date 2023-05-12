@@ -1,0 +1,12 @@
+services:
+  piliskor_story.annotation_manager:
+    class: Drupal\piliskor_story\AnnotationManager
+    arguments: ['@entity_type.manager', '@string_translation', '@datetime.time', '@piliskor_run.track_manager', '@piliskor_run.run_manager', '@piliskor_story.annotation_utility']
+
+  piliskor_story.annotation_utility:
+    class: Drupal\piliskor_story\AnnotationUtility
+    arguments: ['@entity_type.manager', '@string_translation', '@datetime.time', '@piliskor_run.track_manager', '@piliskor_run.run_manager']
+
+  piliskor_story.annotation_markup:
+    class: Drupal\piliskor_story\AnnotationMarkup
+    arguments: ['@entity_type.manager', '@string_translation', '@piliskor_run.track_manager', '@piliskor_run.run_manager', '@piliskor_story.annotation_utility', '@piliskor_story.annotation_manager', '@renderer']

@@ -1,0 +1,3 @@
+This is a module used on a trail-running related hobby site of mine. 
+
+The purpose of the module is to reveal as many letters of a short story as many kilometers have been logged in the system. The result can be seen at https://gulyakor.hu/hu/node/2508 (unfortunately only in Hungarian). Here you can visualize each contributed kilometer by a colored letter corresponding to the runner. The coloring of runners can be toggled.
